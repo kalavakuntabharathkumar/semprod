@@ -5,6 +5,7 @@ from .db import Base, engine, get_db
 from .models import Product
 from .seed import seed_products
 from .search import rank
+import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,3 +41,19 @@ def recommend(product_id: int, limit: int = Query(5, ge=1, le=20), db: Session =
     candidates = db.query(Product).filter(Product.id != product_id).all()
     ranked = rank(f"{source.name} {source.category} {source.description} {source.tags}", candidates)[:limit]
     return {"product": serialize(source), "recommendations": [{**serialize(r["product"]), "score": r["score"]} for r in ranked]}
+
+@app.get("/explain")
+def explain(q: str = Query(..., min_length=2, max_length=250)):
+    """Return a short search explanation; uses OpenAI when configured, otherwise a local fallback."""
+    if os.getenv("OPENAI_API_KEY"):
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+            response = client.responses.create(
+                model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+                input=f"Explain in one concise sentence what kinds of products this ecommerce search query seeks: {q!r}. Do not invent specific inventory."
+            )
+            return {"query": q, "explanation": response.output_text, "mode": "llm"}
+        except Exception:
+            pass
+    return {"query": q, "explanation": f"Searching product names, categories, descriptions, and tags related to: {q}.", "mode": "fallback"}

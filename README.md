@@ -23,9 +23,10 @@ Open http://127.0.0.1:8000/docs. Seed products are inserted automatically on fir
 - `GET /products?limit=20`
 - `GET /search?q=lightweight+running+shoes&limit=10`
 - `GET /recommend/{product_id}?limit=5`
+- `GET /explain?q=quiet+headphones` (optional OpenAI API; local fallback if unavailable)
 
 ## PostgreSQL
-Set `DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/products`. The default is `sqlite:///./products.db`.
+Set `DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/products`. The default is `sqlite:///./products.db`. Set `OPENAI_API_KEY` to enable optional query explanations. Semantic embeddings use Sentence-Transformers when available, with FAISS inner-product retrieval when installed; otherwise the service falls back to TF-IDF.
 
 ## Notes
 This is a development-ready portfolio baseline, not a production-validated service. For production, add authentication, migrations, monitoring, load testing, data governance, and model/index versioning.

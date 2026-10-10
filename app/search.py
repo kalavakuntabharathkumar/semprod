@@ -21,9 +21,17 @@ def rank(query, products):
     encoder = _encoder()
     if encoder is not None:
         try:
-            vectors = encoder.encode(docs, normalize_embeddings=True)
-            qv = encoder.encode([query], normalize_embeddings=True)[0]
-            scores = np.asarray(vectors) @ np.asarray(qv)
+            vectors = np.asarray(encoder.encode(docs, normalize_embeddings=True), dtype="float32")
+            qv = np.asarray(encoder.encode([query], normalize_embeddings=True), dtype="float32")
+            try:
+                import faiss
+                index = faiss.IndexFlatIP(vectors.shape[1])
+                index.add(vectors)
+                distances, indices = index.search(qv, len(docs))
+                scores = np.zeros(len(docs), dtype="float32")
+                scores[indices[0]] = distances[0]
+            except Exception:
+                scores = vectors @ qv[0]
         except Exception:
             scores = _tfidf_scores(query, docs)
     else:
